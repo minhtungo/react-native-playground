@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { View, PanResponder, Image, StyleSheet, ImageSourcePropType } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
+import { useSocketDrawing } from '@/hooks/useSocketDrawing';
 
 interface Point {
   x: number;
@@ -22,6 +23,7 @@ export function DrawingCanvas({ imageSource, onStrokeComplete }: DrawingCanvasPr
   const strokesRef = useRef<Stroke[]>([]);
   const currentPointsRef = useRef<Point[]>([]);
   const pathsRef = useRef<React.ReactNode[]>([]);
+  const { onDraw } = useSocketDrawing();
 
   const addNewPath = (points: Point[]) => {
     const newPath = (
@@ -48,12 +50,14 @@ export function DrawingCanvas({ imageSource, onStrokeComplete }: DrawingCanvasPr
       onPanResponderGrant: (event) => {
         const { locationX, locationY } = event.nativeEvent;
         currentPointsRef.current = [{ x: locationX, y: locationY }];
+        onDraw(locationX, locationY);
         forceUpdate();
       },
 
       onPanResponderMove: (event) => {
         const { locationX, locationY } = event.nativeEvent;
         currentPointsRef.current = [...currentPointsRef.current, { x: locationX, y: locationY }];
+        onDraw(locationX, locationY);
         forceUpdate();
       },
 
