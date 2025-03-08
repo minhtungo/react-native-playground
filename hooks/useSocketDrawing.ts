@@ -6,6 +6,7 @@ interface DrawingEvent {
   y: number;
   pressure: number;
   timestamp: number;
+  normalized?: boolean;
 }
 
 interface StrokeUpdate {
@@ -13,11 +14,18 @@ interface StrokeUpdate {
   color: string;
   width: number;
   type: string;
+  canvasInfo?: {
+    width: number;
+    height: number;
+    imageWidth: number;
+    imageHeight: number;
+  };
 }
 
 export function useSocketDrawing() {
   const socketRef = useRef<Socket | null>(null);
   const strokesRef = useRef<DrawingEvent[]>([]);
+  const canvasInfoRef = useRef<any>(null);
   const batchSize = 10;
 
   useEffect(() => {
@@ -60,8 +68,9 @@ export function useSocketDrawing() {
     const strokeUpdate: StrokeUpdate = {
       points,
       color: '#FF0000',
-      width: 2,
+      width: 5,
       type: 'pen',
+      canvasInfo: canvasInfoRef.current,
     };
 
     console.log('Sending stroke update:', { noteId: '1234', stroke: strokeUpdate });
@@ -78,12 +87,29 @@ export function useSocketDrawing() {
     );
   };
 
+  const setCanvasInfo = (canvasWidth: number, canvasHeight: number, imageWidth: number, imageHeight: number) => {
+    canvasInfoRef.current = {
+      width: canvasWidth,
+      height: canvasHeight,
+      imageWidth,
+      imageHeight,
+    };
+
+    if (socketRef.current?.connected) {
+      socketRef.current.emit('canvas-info', {
+        noteId: '1234',
+        canvasInfo: canvasInfoRef.current,
+      });
+    }
+  };
+
   const onDraw = (x: number, y: number) => {
     const event: DrawingEvent = {
       x,
       y,
       pressure: 1,
       timestamp: Date.now(),
+      normalized: true,
     };
 
     strokesRef.current.push(event);
@@ -94,5 +120,5 @@ export function useSocketDrawing() {
     }
   };
 
-  return { onDraw };
+  return { onDraw, setCanvasInfo };
 }
